@@ -1,15 +1,15 @@
 #!/bin/ash
 
-cd /hiveos-image
-if ! test -f hiveos.qcow2; then
-  echo "The file /hiveos-image/hiveos.qcow2 doesnt exist (or isnt volume linked), going to create it now."
-  if ! test -f rig.conf; then
-    echo "Missing /hiveos-docker/rig.conf file. Aborting."
+if ! test -f /hiveos-rig/hiveos.qcow2; then
+  echo "The file /hiveos-rig/hiveos.qcow2 doesnt exist (or isnt volume linked), going to create it now."
+  if ! test -f /hiveos-rig/rig.conf; then
+    echo "Missing /hiveos-rig/rig.conf file. Aborting."
     exit 1
   fi
 
+  cd /hiveos-rig
   echo "Downloading HiveOS..."
-  curl -o hiveos.img.xz "https://download.hiveos.farm/$(curl 'https://download.hiveos.farm/VERSIONS.txt' 2>&1 | sed -rn 's/.*(hiveos-.*\.img\.xz)/\1/p')"
+  curl -o hiveos.img.xz "https://download.hiveos.farm/$(curl 'https://download.hiveos.farm/VERSIONS.txt' 2>&1 | sed -rn 's/.*(hiveos-.*\.img\.xz)/\1/p' | head -1)"
   echo "Decompressing..."
   xz --decompress hiveos.img.xz
   echo "Converting to qcow2 and recompressing..."
@@ -24,7 +24,7 @@ if ! test -f hiveos.qcow2; then
 
   mkdir /mnt/hiveos-config
   mount -t ntfs-3g /dev/nbd0p1 /mnt/hiveos-config
-  cp rig.conf /mnt/hiveos-config/rig.conf
+  cp /hiveos-rig/rig.conf /mnt/hiveos-config/rig.conf
 
   umount /mnt/hiveos-config
   rm -r /mnt/hiveos-config
@@ -65,7 +65,7 @@ exec qemu-system-x86_64 \
   -rtc clock=host,base=localtime \
   -device qemu-xhci `# USB3 bus` \
   \
-  -drive file=/hiveos-image/hiveos.qcow2 \
+  -drive file=/hiveos-rig/hiveos.qcow2 \
   \
   $(for x in $(lspci | grep -e NVIDIA -e AMD | awk '{print $1}'); do echo "-device vfio-pci,host=$x "; done | xargs) \
   \
